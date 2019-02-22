@@ -3420,14 +3420,14 @@ handler_again:
 							// rc==2 : a multi-resultset (or multi statement) was detected, and the current statement is completed
 							case 2:
 								MySQL_Result_to_MySQL_wire(myconn->mysql, myconn->MyRS);
-								  if (myconn->MyRS) { // we also need to clear MyRS, so that the next staement will recreate it if needed
+								  /*if (myconn->MyRS) { // we also need to clear MyRS, so that the next staement will recreate it if needed
 										if (myconn->MyRS_reuse) {
 											delete myconn->MyRS_reuse;
 										}
 										myconn->MyRS->reset_pid = false;
 										myconn->MyRS_reuse = myconn->MyRS;
 										myconn->MyRS=NULL;
-									}
+									}*/
 									NEXT_IMMEDIATE(PROCESSING_QUERY);
 								break;
 							// rc==3 , a multi statement query is still running
