@@ -76,6 +76,8 @@ else
 PSQLCH=
 endif
 
+OPTZ=-O0
+
 MYCXXFLAGS=-std=c++11 $(IDIRS) $(OPTZ) $(DEBUG) $(PSQLCH) -DGITVERSION=\"$(GIT_VERSION)\"
 
 LDFLAGS+=

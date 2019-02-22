@@ -1,5 +1,6 @@
 O0=-O0
 O2=-O2
+O2=-O0
 O1=-O1
 O3=-O3 -mtune=native
 #OPTZ=$(O2)
