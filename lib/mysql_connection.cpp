@@ -914,10 +914,14 @@ handler_again:
 //			break;
 
 		case ASYNC_NEXT_RESULT_START:
+                        if(!mysql_more_results(mysql)) {
+                           goto async_next_result_start_label;
+                        }
 			async_exit_status = mysql_next_result_start(&interr, mysql);
 			if (async_exit_status) {
 				next_event(ASYNC_NEXT_RESULT_CONT);
 			} else {
+async_next_result_start_label:
 #ifdef PROXYSQL_USE_RESULT
 				NEXT_IMMEDIATE(ASYNC_USE_RESULT_START);
 #else
