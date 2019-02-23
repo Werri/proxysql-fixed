@@ -1,5 +1,4 @@
-#define PKT_PARSED 0
-#define PKT_ERROR 1
+#define PKT_PARSED 0 define PKT_ERROR 1
 
 #ifdef max_allowed_packet
 #undef max_allowed_packet
@@ -71,7 +70,10 @@ enum MDB_ASYNC_ST { // MariaDB Async State Machine
 	ASYNC_STMT_EXECUTE_STORE_RESULT_CONT,
 	ASYNC_STMT_EXECUTE_END,
 
-	ASYNC_IDLE
+	ASYNC_IDLE,
+
+        ASYNC_QUERY_GET_RESULT_START,
+        ASYNC_QUERY_GET_RESULT_CONT
 };
 
 // list of possible debugging modules

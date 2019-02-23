@@ -137,7 +137,7 @@ void * kill_query_thread(void *arg) {
 			sprintf(buf,"KILL %lu", ka->id);
 			break;
 	}
-	// FIXME: these 2 calls are blocking, fortunately on their own thread
+	// FIXME: these 2 _calls are blocking, fortunately on their own thread
 	mysql_query(mysql,buf);
 	mysql_close(mysql);
 __exit_kill_query_thread:
@@ -1931,7 +1931,7 @@ bool MySQL_Session::handler_again___status_CONNECTING_SERVER(int *_rc) {
 		if (mirror) {
 			PROXY_TRACE();
 			NEXT_IMMEDIATE_NEW(WAITING_CLIENT_DATA);
-		}		
+		}
 	}
 	if (mybe->server_myds->myconn==NULL) {
 		pause_until=thread->curtime+mysql_thread___connect_retries_delay*1000;
@@ -4767,13 +4767,9 @@ void MySQL_Session::MySQL_Result_to_MySQL_call_wire(MySQL_Connection * myconn) {
      }
      if(tmpConn) {
         if(tmpRS) {
-           if(tmpConn->sync_counter>2) {
-              MySQL_Result_to_MySQL_wire(tmpMysql, NULL, NULL);
-              tmpConn->sync_counter=0;
-           } else {
-              MySQL_Result_to_MySQL_wire(tmpMysql, tmpRS, NULL);
-              tmpConn->sync_counter++;
-           }
+           MySQL_Result_to_MySQL_wire(tmpMysql, tmpRS, NULL);
+           mybe->server_myds->PSarrayOUT->copy_add(client_myds->PSarrayOUT, 0, client_myds->PSarrayOUT->len);
+           while (client_myds->PSarrayOUT->len) client_myds->PSarrayOUT->remove_index(client_myds->PSarrayOUT->len-1,NULL);
         } else {
            MySQL_Result_to_MySQL_wire(tmpMysql, NULL, NULL);
         }

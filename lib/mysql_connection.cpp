@@ -5,7 +5,7 @@
 
 extern const MARIADB_CHARSET_INFO * proxysql_find_charset_nr(unsigned int nr);
 
-#define PROXYSQL_USE_RESULT
+//#define PROXYSQL_USE_RESULT
 
 static int
 mysql_status(short event, short cont) {
@@ -957,7 +957,7 @@ async_next_result_start_label:
 			if (async_exit_status) {
 				next_event(ASYNC_STORE_RESULT_CONT);
 			} else {
-				NEXT_IMMEDIATE(ASYNC_QUERY_END);
+				NEXT_IMMEDIATE(ASYNC_QUERY_GET_RESULT_START);
 			}
 			break;
 		case ASYNC_STORE_RESULT_CONT:
@@ -965,9 +965,63 @@ async_next_result_start_label:
 			if (async_exit_status) {
 				next_event(ASYNC_STORE_RESULT_CONT);
 			} else {
-				NEXT_IMMEDIATE(ASYNC_QUERY_END);
+				NEXT_IMMEDIATE(ASYNC_QUERY_GET_RESULT_START);
 			}
 			break;
+
+                case ASYNC_QUERY_GET_RESULT_START:
+                        async_exit_status=mysql_fetch_row_start(&mysql_row,mysql_result);
+                        if(mysql_row) {
+                           if(MyRS==NULL) {
+                              MyRS = new MySQL_ResultSet();
+                              MyRS->init(&myds->sess->client_myds->myprot, mysql_result, mysql);
+                              MyRS->have_result=true;
+                              MyRS->resultset_completed=false;
+                              MyRS->transfer_started=false;
+                           }
+                           if(!MyRS->have_result) {
+                               MyRS->init(&myds->sess->client_myds->myprot, mysql_result, mysql);
+                               MyRS->have_result=true;
+                               MyRS->resultset_completed=false;
+                               MyRS->transfer_started=false;
+                           }
+                           MyRS->add_row(mysql_row);
+                        }
+                        if(async_exit_status) {
+                           next_event(ASYNC_QUERY_GET_RESULT_CONT);
+                        } else {
+                           MyRS->add_eof();
+                           MyRS->have_result=false;
+                           MyRS->resultset_completed=true;
+                           NEXT_IMMEDIATE(ASYNC_QUERY_END);
+                        }
+
+                case ASYNC_QUERY_GET_RESULT_CONT:
+                        async_exit_status=mysql_fetch_row_cont(&mysql_row,mysql_result, mysql_status(event, true));
+                        if(mysql_row) {
+                           if(MyRS==NULL) {
+                              MyRS = new MySQL_ResultSet();
+                              MyRS->init(&myds->sess->client_myds->myprot, mysql_result, mysql);
+                              MyRS->have_result=true;
+                              MyRS->resultset_completed=false;
+                              MyRS->transfer_started=false;
+                           }
+                           if(!MyRS->have_result) {
+                               MyRS->init(&myds->sess->client_myds->myprot, mysql_result, mysql);
+                               MyRS->have_result=true;
+                               MyRS->resultset_completed=false;
+                               MyRS->transfer_started=false;
+                           }
+                        }
+                        if(async_exit_status) {
+                           next_event(ASYNC_QUERY_GET_RESULT_CONT);
+                        } else {
+                           MyRS->add_eof();
+                           MyRS->have_result=false;
+                           MyRS->resultset_completed=true;
+                           NEXT_IMMEDIATE(ASYNC_QUERY_END);
+                        }
+
 		case ASYNC_USE_RESULT_START:
 			if (mysql_errno(mysql)) {
 				NEXT_IMMEDIATE(ASYNC_QUERY_END);
