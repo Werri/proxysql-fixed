@@ -240,7 +240,7 @@ static uint8_t mysql_encode_length(uint64_t len, char *hd) {
 	if (len < 65536) { if (hd) { *hd=0xfc; }; return 3; }
 	if (len < 16777216) { if (hd) { *hd=0xfd; }; return 4; }
 	if (hd) { *hd=0xfe; }
-	return 9;	
+	return 9;
 }
 
 
