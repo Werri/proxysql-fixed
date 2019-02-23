@@ -229,6 +229,7 @@ MySQL_Connection::MySQL_Connection() {
 	processing_multi_statement=false;
 	proxy_debug(PROXY_DEBUG_MYSQL_CONNPOOL, 4, "Creating new MySQL_Connection %p\n", this);
 	local_stmts=new MySQL_STMTs_local_v14(false); // false by default, it is a backend
+        sync_counter = 0;
 };
 
 MySQL_Connection::~MySQL_Connection() {

@@ -3419,7 +3419,7 @@ handler_again:
 								break;
 							// rc==2 : a multi-resultset (or multi statement) was detected, and the current statement is completed
 							case 2:
-								MySQL_Result_to_MySQL_wire(myconn->mysql, myconn->MyRS);
+								MySQL_Result_to_MySQL_call_wire(myconn);
 								  /*if (myconn->MyRS) { // we also need to clear MyRS, so that the next staement will recreate it if needed
 										if (myconn->MyRS_reuse) {
 											delete myconn->MyRS_reuse;
@@ -4742,6 +4742,42 @@ void MySQL_Session::MySQL_Stmt_Result_to_MySQL_wire(MYSQL_STMT *stmt, MySQL_Conn
 			client_myds->pkt_sid++;
 		}
 	}
+}
+
+void MySQL_Session::MySQL_Result_to_MySQL_call_wire(MySQL_Connection * myconn) {
+     MySQL_ResultSet * tmpRS = NULL;
+     MySQL_Connection * tmpConn = NULL;
+     MYSQL * tmpMysql = NULL;
+     MYSQL_RES * tmpMysqlRes = NULL;
+     MYSQL_RES * tmpMyRS_MysqlRes = NULL;
+     if(myconn) {
+        tmpConn=myconn;
+        if(tmpConn->MyRS) {
+           tmpRS=tmpConn->MyRS;
+           if(tmpRS->result) {
+              tmpMyRS_MysqlRes = tmpRS->result;
+           }
+        }
+        if(tmpConn->mysql) {
+           tmpMysql=tmpConn->mysql;
+        }
+        if(tmpConn->mysql_result) {
+           tmpMysqlRes = tmpConn->mysql_result;
+        }
+     }
+     if(tmpConn) {
+        if(tmpRS) {
+           if(tmpConn->sync_counter>2) {
+              MySQL_Result_to_MySQL_wire(tmpMysql, NULL, NULL);
+              tmpConn->sync_counter=0;
+           } else {
+              MySQL_Result_to_MySQL_wire(tmpMysql, tmpRS, NULL);
+              tmpConn->sync_counter++;
+           }
+        } else {
+           MySQL_Result_to_MySQL_wire(tmpMysql, NULL, NULL);
+        }
+     }
 }
 
 void MySQL_Session::MySQL_Result_to_MySQL_wire(MYSQL *mysql, MySQL_ResultSet *MyRS, MySQL_Data_Stream *_myds) {

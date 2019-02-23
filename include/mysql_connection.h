@@ -186,5 +186,6 @@ class MySQL_Connection {
 
 	bool get_gtid(char *buff, uint64_t *trx_id);
 	void reduce_auto_increment_delay_token() { if (auto_increment_delay_token) auto_increment_delay_token--; };
+        int sync_counter;
 };
 #endif /* __CLASS_MYSQL_CONNECTION_H */

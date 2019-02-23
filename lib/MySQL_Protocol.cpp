@@ -48,7 +48,6 @@ static void __dump_pkt(const char *func, unsigned char *_ptr, unsigned int len) 
 		}
    }
 	fprintf(stderr,"\n\n");
-	
 
 }
 #endif
@@ -119,7 +118,7 @@ static inline int write_encoded_length_and_string(unsigned char *p, uint64_t val
 
 void proxy_compute_sha1_hash_multi(uint8 *digest, const char *buf1, int len1, const char *buf2, int len2) {
   PROXY_TRACE();
-  
+
   SHA_CTX sha1_context;
   SHA1_Init(&sha1_context);
   SHA1_Update(&sha1_context, buf1, len1);
@@ -129,7 +128,7 @@ void proxy_compute_sha1_hash_multi(uint8 *digest, const char *buf1, int len1, co
 
 void proxy_compute_sha1_hash(uint8 *digest, const char *buf, int len) {
   PROXY_TRACE();
-  
+
   SHA_CTX sha1_context;
   SHA1_Init(&sha1_context);
   SHA1_Update(&sha1_context, buf, len);
