@@ -414,7 +414,7 @@ int MySQL_Protocol::parse_mysql_pkt(PtrSize_t *PS_entry, MySQL_Data_Stream *__my
 			switch (cmd) {
 				case COM_QUERY:
 					if (pkt_com_query(payload, hdr.pkt_length)==PKT_PARSED) {
-						//*states=STATE_CLIENT_COM_QUERY;
+						// *states=STATE_CLIENT_COM_QUERY;
 						return PKT_PARSED;
 					}
 					break;
