@@ -74,7 +74,9 @@ enum MDB_ASYNC_ST { // MariaDB Async State Machine
 	ASYNC_IDLE,
 
         ASYNC_QUERY_GET_RESULT_START,
-        ASYNC_QUERY_GET_RESULT_CONT
+        ASYNC_QUERY_GET_RESULT_CONT,
+        ASYNC_FREE_RESULT_START,
+        ASYNC_FREE_RESULT_CONT
 };
 
 // list of possible debugging modules

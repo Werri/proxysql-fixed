@@ -969,6 +969,34 @@ async_next_result_start_label:
 				NEXT_IMMEDIATE(ASYNC_QUERY_GET_RESULT_START);
 			}
 			break;
+                case ASYNC_FREE_RESULT_START:
+                        async_exit_status=mysql_free_result_start(mysql_result);
+                        if(MyRS) {
+                           MyRS->is_started = true;
+                        }
+                        if(async_exit_status) {
+                                next_event(ASYNC_FREE_RESULT_CONT);
+                                NEXT_IMMEDIATE(ASYNC_QUERY_GET_RESULT_CONT);
+                        } else {
+                                next_event(ASYNC_FREE_RESULT_CONT);
+                                goto async_free_result_end_label;
+                        }
+                        break;
+
+                case ASYNC_FREE_RESULT_CONT:
+                        async_exit_status=mysql_free_result_cont(mysql_result, mysql_status(event, true));
+                        if(async_exit_status) {
+                                next_event(ASYNC_FREE_RESULT_CONT);
+                                NEXT_IMMEDIATE(ASYNC_QUERY_GET_RESULT_CONT);
+                        } else {
+async_free_result_end_label:
+                                MyRS->add_eof();
+                                MyRS->have_result=false;
+                                MyRS->resultset_completed=true;
+                                mysql_result=NULL;
+                                NEXT_IMMEDIATE(ASYNC_QUERY_END);
+                        }
+                        break;
 
                 case ASYNC_QUERY_GET_RESULT_START:
                         async_exit_status=mysql_fetch_row_start(&mysql_row,mysql_result);
@@ -979,25 +1007,28 @@ async_next_result_start_label:
                               MyRS->have_result=true;
                               MyRS->resultset_completed=false;
                               MyRS->transfer_started=false;
+                              MyRS->is_started=false;
                            }
                            if(!MyRS->have_result) {
                                MyRS->init(&myds->sess->client_myds->myprot, mysql_result, mysql);
                                MyRS->have_result=true;
                                MyRS->resultset_completed=false;
                                MyRS->transfer_started=false;
+                               MyRS->is_started=false;
                            }
                            MyRS->add_row(mysql_row);
-                           next_event(ASYNC_QUERY_GET_RESULT_CONT);
-                           async_exit_status=0;
+                           mysql_row=NULL;
                         }
                         if(async_exit_status) {
-                           next_event(ASYNC_QUERY_GET_RESULT_CONT);
+                           NEXT_IMMEDIATE(ASYNC_QUERY_GET_RESULT_CONT);
                         } else {
-                           MyRS->add_eof();
-                           MyRS->have_result=false;
-                           MyRS->resultset_completed=true;
-                           NEXT_IMMEDIATE(ASYNC_QUERY_END);
+                           if(!MyRS->is_started) {
+                               NEXT_IMMEDIATE(ASYNC_FREE_RESULT_START);
+                           } else {
+                               NEXT_IMMEDIATE(ASYNC_FREE_RESULT_CONT);
+                           }
                         }
+                        break;
 
                 case ASYNC_QUERY_GET_RESULT_CONT:
                         async_exit_status=mysql_fetch_row_cont(&mysql_row,mysql_result, mysql_status(event, true));
@@ -1008,25 +1039,28 @@ async_next_result_start_label:
                               MyRS->have_result=true;
                               MyRS->resultset_completed=false;
                               MyRS->transfer_started=false;
+                              MyRS->is_started=false;
                            }
                            if(!MyRS->have_result) {
                                MyRS->init(&myds->sess->client_myds->myprot, mysql_result, mysql);
                                MyRS->have_result=true;
                                MyRS->resultset_completed=false;
                                MyRS->transfer_started=false;
+                               MyRS->is_started=false;
                            }
                            MyRS->add_row(mysql_row);
-                           next_event(ASYNC_QUERY_GET_RESULT_CONT);
-                           async_exit_status=0;
+                           mysql_row=NULL;
                         }
                         if(async_exit_status) {
-                           next_event(ASYNC_QUERY_GET_RESULT_CONT);
+                           NEXT_IMMEDIATE(ASYNC_QUERY_GET_RESULT_CONT);
                         } else {
-                           MyRS->add_eof();
-                           MyRS->have_result=false;
-                           MyRS->resultset_completed=true;
-                           NEXT_IMMEDIATE(ASYNC_QUERY_END);
+                           if(!MyRS->is_started) {
+                               NEXT_IMMEDIATE(ASYNC_FREE_RESULT_START);
+                           } else {
+                               NEXT_IMMEDIATE(ASYNC_FREE_RESULT_CONT);
+                           }
                         }
+                        break;
 
 		case ASYNC_USE_RESULT_START:
 			if (mysql_errno(mysql)) {

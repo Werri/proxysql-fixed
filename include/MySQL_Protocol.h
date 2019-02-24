@@ -35,6 +35,7 @@ class MySQL_ResultSet {
 	void buffer_to_PSarrayOut(bool _last=false);
 	unsigned long long current_size();
         bool have_result;
+        bool is_started;
 };
 
 class MySQL_Prepared_Stmt_info {
