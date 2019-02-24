@@ -231,6 +231,7 @@ MySQL_Connection::MySQL_Connection() {
 	proxy_debug(PROXY_DEBUG_MYSQL_CONNPOOL, 4, "Creating new MySQL_Connection %p\n", this);
 	local_stmts=new MySQL_STMTs_local_v14(false); // false by default, it is a backend
         sync_counter = 0;
+        multi_statements=false;
 };
 
 MySQL_Connection::~MySQL_Connection() {
@@ -619,6 +620,7 @@ void MySQL_Connection::set_is_client() {
 }
 
 #define NEXT_IMMEDIATE(new_st) do { async_state_machine = new_st; goto handler_again; } while (0)
+#define NEXT_IMMEDIATE_EX(set_st,new_st) do { next_event(set_st); async_state_machine = new_st; goto handler_again; } while(0)
 
 MDB_ASYNC_ST MySQL_Connection::handler(short event) {
 	unsigned long long processed_bytes=0;	// issue #527 : this variable will store the amount of bytes processed during this event
@@ -915,15 +917,20 @@ handler_again:
 //		case ASYNC_STMT_EXECUTE_FAILED:
 //			break;
 
+                case ASYNC_MULTI_STATEMENTS:
+                     multi_statements=true;
+#ifdef PROXYSQL_USE_RESULT
+                     NEXT_IMMEDIATE(ASYNC_USE_RESULT_START);
+#else
+                     NEXT_IMMEDIATE(ASYNC_STORE_RESULT_START);
+#endif
+                break;
+
 		case ASYNC_NEXT_RESULT_START:
-                        if(!mysql_more_results(mysql)) {
-                           goto async_next_result_start_label;
-                        }
 			async_exit_status = mysql_next_result_start(&interr, mysql);
 			if (async_exit_status) {
 				next_event(ASYNC_NEXT_RESULT_CONT);
 			} else {
-async_next_result_start_label:
 #ifdef PROXYSQL_USE_RESULT
 				NEXT_IMMEDIATE(ASYNC_USE_RESULT_START);
 #else
@@ -933,10 +940,10 @@ async_next_result_start_label:
 			break;
 
 		case ASYNC_NEXT_RESULT_CONT:
-			if (event) {
-				async_exit_status = mysql_next_result_cont(&interr, mysql, mysql_status(event, true));
-			}
-			if (async_exit_status) {
+                        //if(event) {
+                           async_exit_status = mysql_next_result_cont(&interr, mysql, mysql_status(event, true));
+			//}
+                        if (async_exit_status) {
 				next_event(ASYNC_NEXT_RESULT_CONT);
 			} else {
 #ifdef PROXYSQL_USE_RESULT
@@ -971,14 +978,12 @@ async_next_result_start_label:
 			break;
                 case ASYNC_FREE_RESULT_START:
                         async_exit_status=mysql_free_result_start(mysql_result);
-                        if(MyRS) {
+                        if(MyRS && MyRS->have_result) {
                            MyRS->is_started = true;
                         }
                         if(async_exit_status) {
-                                next_event(ASYNC_FREE_RESULT_CONT);
-                                NEXT_IMMEDIATE(ASYNC_QUERY_GET_RESULT_CONT);
+                                NEXT_IMMEDIATE_EX(ASYNC_FREE_RESULT_CONT,ASYNC_QUERY_GET_RESULT_CONT);
                         } else {
-                                next_event(ASYNC_FREE_RESULT_CONT);
                                 goto async_free_result_end_label;
                         }
                         break;
@@ -986,21 +991,22 @@ async_next_result_start_label:
                 case ASYNC_FREE_RESULT_CONT:
                         async_exit_status=mysql_free_result_cont(mysql_result, mysql_status(event, true));
                         if(async_exit_status) {
-                                next_event(ASYNC_FREE_RESULT_CONT);
-                                NEXT_IMMEDIATE(ASYNC_QUERY_GET_RESULT_CONT);
+                                NEXT_IMMEDIATE_EX(ASYNC_FREE_RESULT_CONT,ASYNC_QUERY_GET_RESULT_CONT);
                         } else {
 async_free_result_end_label:
                                 MyRS->add_eof();
                                 MyRS->have_result=false;
                                 MyRS->resultset_completed=true;
+                                //MyRS->result=NULL;
                                 mysql_result=NULL;
                                 NEXT_IMMEDIATE(ASYNC_QUERY_END);
                         }
                         break;
 
                 case ASYNC_QUERY_GET_RESULT_START:
+                        mysql_row=NULL;
                         async_exit_status=mysql_fetch_row_start(&mysql_row,mysql_result);
-                        if(mysql_row) {
+                        if(mysql_row&&mysql_result&&mysql) {
                            if(MyRS==NULL) {
                               MyRS = new MySQL_ResultSet();
                               MyRS->init(&myds->sess->client_myds->myprot, mysql_result, mysql);
@@ -1020,19 +1026,22 @@ async_free_result_end_label:
                            mysql_row=NULL;
                         }
                         if(async_exit_status) {
-                           NEXT_IMMEDIATE(ASYNC_QUERY_GET_RESULT_CONT);
-                        } else {
+                           next_event(ASYNC_QUERY_GET_RESULT_CONT);
+                        } else if (MyRS && MyRS->have_result) {
                            if(!MyRS->is_started) {
                                NEXT_IMMEDIATE(ASYNC_FREE_RESULT_START);
                            } else {
                                NEXT_IMMEDIATE(ASYNC_FREE_RESULT_CONT);
                            }
+                        } else {
+                           NEXT_IMMEDIATE(ASYNC_QUERY_END);
                         }
                         break;
 
                 case ASYNC_QUERY_GET_RESULT_CONT:
+                        mysql_row=NULL;
                         async_exit_status=mysql_fetch_row_cont(&mysql_row,mysql_result, mysql_status(event, true));
-                        if(mysql_row) {
+                        if(mysql_row&&mysql_result&&mysql) {
                            if(MyRS==NULL) {
                               MyRS = new MySQL_ResultSet();
                               MyRS->init(&myds->sess->client_myds->myprot, mysql_result, mysql);
@@ -1052,13 +1061,15 @@ async_free_result_end_label:
                            mysql_row=NULL;
                         }
                         if(async_exit_status) {
-                           NEXT_IMMEDIATE(ASYNC_QUERY_GET_RESULT_CONT);
-                        } else {
+                           next_event(ASYNC_QUERY_GET_RESULT_CONT);
+                        } else if (MyRS && MyRS->have_result) {
                            if(!MyRS->is_started) {
                                NEXT_IMMEDIATE(ASYNC_FREE_RESULT_START);
                            } else {
                                NEXT_IMMEDIATE(ASYNC_FREE_RESULT_CONT);
                            }
+                        } else {
+                           NEXT_IMMEDIATE(ASYNC_QUERY_END);
                         }
                         break;
 
@@ -1160,7 +1171,7 @@ async_free_result_end_label:
 			}
 			//if (mysql_next_result(mysql)==0) {
 			if (mysql->server_status & SERVER_MORE_RESULTS_EXIST) {
-				async_state_machine=ASYNC_NEXT_RESULT_START;
+				async_state_machine=ASYNC_MULTI_STATEMENTS;
 			}
 			break;
 		case ASYNC_SET_AUTOCOMMIT_START:
@@ -1298,7 +1309,6 @@ void MySQL_Connection::next_event(MDB_ASYNC_ST new_st) {
 	proxy_debug(PROXY_DEBUG_NET, 8, "fd=%d, wait_events=%d , old_ST=%d, new_ST=%d\n", fd, wait_events, async_state_machine, new_st);
 	async_state_machine = new_st;
 };
-
 
 int MySQL_Connection::async_connect(short event) {
 	PROXY_TRACE();
