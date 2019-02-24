@@ -3419,7 +3419,8 @@ handler_again:
 								break;
 							// rc==2 : a multi-resultset (or multi statement) was detected, and the current statement is completed
 							case 2:
-								MySQL_Result_to_MySQL_call_wire(myconn);
+                                                                MySQL_Result_to_MySQL_wire(myconn->mysql,myconn->MyRS);
+								//MySQL_Result_to_MySQL_call_wire(myconn);
 								  /*if (myconn->MyRS) { // we also need to clear MyRS, so that the next staement will recreate it if needed
 										if (myconn->MyRS_reuse) {
 											delete myconn->MyRS_reuse;

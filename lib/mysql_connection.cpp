@@ -6,7 +6,10 @@
 
 extern const MARIADB_CHARSET_INFO * proxysql_find_charset_nr(unsigned int nr);
 
-//#define PROXYSQL_USE_RESULT
+#define PROXYSQL_USE_RESULT
+//ifdef PROXYSQL_USE_RESULT
+//#undef PROXYSQL_USE_RESULT
+//#endif
 
 static int
 mysql_status(short event, short cont) {
@@ -921,6 +924,7 @@ handler_again:
 
                 case ASYNC_MULTI_STATEMENTS:
                      multi_statements=false;
+                     NEXT_IMMEDIATE(ASYNC_QUERY_END);
 #ifdef PROXYSQL_USE_RESULT
                      NEXT_IMMEDIATE(ASYNC_USE_RESULT_START);
 #else
@@ -975,7 +979,8 @@ handler_again:
 			if (async_exit_status) {
 				next_event(ASYNC_STORE_RESULT_CONT);
 			} else {
-				NEXT_IMMEDIATE(ASYNC_QUERY_GET_RESULT_START);
+				//NEXT_IMMEDIATE(ASYNC_QUERY_GET_RESULT_START);
+                                NEXT_IMMEDIATE(ASYNC_QUERY_END);
 			}
 			break;
                 case ASYNC_FREE_RESULT_START:
