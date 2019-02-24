@@ -994,6 +994,13 @@ handler_again:
                                 NEXT_IMMEDIATE_EX(ASYNC_FREE_RESULT_CONT,ASYNC_QUERY_GET_RESULT_CONT);
                         } else {
 async_free_result_end_label:
+                                if(multi_statements) {
+                                   multi_statements=false;
+                                   if(mysql_more_results(mysql) > 0) {
+                                      NEXT_IMMEDIATE(ASYNC_NEXT_RESULT_START);
+                                   }
+                                }
+
                                 MyRS->add_eof();
                                 MyRS->have_result=false;
                                 MyRS->resultset_completed=true;
