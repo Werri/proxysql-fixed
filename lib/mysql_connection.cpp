@@ -995,8 +995,8 @@ handler_again:
                         } else {
 async_free_result_end_label:
                                 if(multi_statements) {
-                                   multi_statements=false;
-                                   if(mysql_more_results(mysql) > 0) {
+                                   multi_statements=mysql_more_results(mysql);
+                                   if(multi_statements) {
                                       NEXT_IMMEDIATE(ASYNC_NEXT_RESULT_START);
                                    }
                                 }
@@ -1447,7 +1447,7 @@ int MySQL_Connection::async_query(short event, char *stmt, unsigned long length,
 			return 0;
 		}
 	}
-	if (async_state_machine==ASYNC_NEXT_RESULT_START) {
+	if (async_state_machine==ASYNC_MULTI_STATEMENTS) {
 		// if we reached this point it measn we are processing a multi-statement
 		// and we need to exit to give control to MySQL_Session
 		processing_multi_statement=true;
@@ -1907,7 +1907,7 @@ int MySQL_Connection::async_send_simple_command(short event, char *stmt, unsigne
 			return 0;
 		}
 	}
-	if (async_state_machine==ASYNC_NEXT_RESULT_START) {
+	if (async_state_machine==ASYNC_MULTI_STATEMENTS) {
 		// if we reached this point it measn we are processing a multi-statement
 		// and we need to exit to give control to MySQL_Session
 		processing_multi_statement=true;
