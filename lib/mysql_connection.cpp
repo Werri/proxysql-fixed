@@ -1012,6 +1012,16 @@ async_free_result_end_label:
 
                 case ASYNC_QUERY_GET_RESULT_START:
                         mysql_row=NULL;
+                        if(mysql_result) {
+                           fetched_rows=mysql_num_rows(mysql_result);
+                        }
+                        if(fetched_rows<=0) {
+                           if(MyRS && MyRS->is_started) {
+                              NEXT_IMMEDIATE(ASYNC_FREE_RESULT_CONT);
+                           } else {
+                              NEXT_IMMEDIATE(ASYNC_FREE_RESULT_START);
+                           }
+                        }
                         async_exit_status=mysql_fetch_row_start(&mysql_row,mysql_result);
                         if(mysql_row&&mysql_result&&mysql) {
                            if(MyRS==NULL) {
@@ -1021,6 +1031,7 @@ async_free_result_end_label:
                               MyRS->resultset_completed=false;
                               MyRS->transfer_started=false;
                               MyRS->is_started=false;
+                              fetched_rows=0;
                            }
                            if(!MyRS->have_result) {
                                MyRS->init(&myds->sess->client_myds->myprot, mysql_result, mysql);
@@ -1028,11 +1039,15 @@ async_free_result_end_label:
                                MyRS->resultset_completed=false;
                                MyRS->transfer_started=false;
                                MyRS->is_started=false;
+                               fetched_rows=0;
                            }
+                           fetched_rows=fetched_rows > 0 ? fetched_rows - 1 : 0;
                            MyRS->add_row(mysql_row);
                            mysql_row=NULL;
                         }
                         if(async_exit_status) {
+                           next_event(ASYNC_QUERY_GET_RESULT_CONT);
+                        } else if(MyRS && fetched_rows>0) {
                            next_event(ASYNC_QUERY_GET_RESULT_CONT);
                         } else if (MyRS && MyRS->have_result) {
                            if(!MyRS->is_started) {
@@ -1047,6 +1062,13 @@ async_free_result_end_label:
 
                 case ASYNC_QUERY_GET_RESULT_CONT:
                         mysql_row=NULL;
+                        if(fetched_rows<=0) {
+                           if(MyRS && MyRS->is_started) {
+                              NEXT_IMMEDIATE(ASYNC_FREE_RESULT_CONT);
+                           } else {
+                              NEXT_IMMEDIATE(ASYNC_FREE_RESULT_START);
+                           }
+                        }
                         async_exit_status=mysql_fetch_row_cont(&mysql_row,mysql_result, mysql_status(event, true));
                         if(mysql_row&&mysql_result&&mysql) {
                            if(MyRS==NULL) {
@@ -1056,6 +1078,7 @@ async_free_result_end_label:
                               MyRS->resultset_completed=false;
                               MyRS->transfer_started=false;
                               MyRS->is_started=false;
+                              fetched_rows=0;
                            }
                            if(!MyRS->have_result) {
                                MyRS->init(&myds->sess->client_myds->myprot, mysql_result, mysql);
@@ -1063,11 +1086,15 @@ async_free_result_end_label:
                                MyRS->resultset_completed=false;
                                MyRS->transfer_started=false;
                                MyRS->is_started=false;
+                               fetched_rows=0;
                            }
+                           fetched_rows=fetched_rows > 0 ? fetched_rows - 1 : 0;
                            MyRS->add_row(mysql_row);
                            mysql_row=NULL;
                         }
                         if(async_exit_status) {
+                           next_event(ASYNC_QUERY_GET_RESULT_CONT);
+                        } else if (MyRS && fetched_rows>0) {
                            next_event(ASYNC_QUERY_GET_RESULT_CONT);
                         } else if (MyRS && MyRS->have_result) {
                            if(!MyRS->is_started) {
