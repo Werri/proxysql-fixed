@@ -2,6 +2,7 @@
 #include "cpp.h"
 #include "SpookyV2.h"
 #include <fcntl.h>
+#include <poll.h>
 
 extern const MARIADB_CHARSET_INFO * proxysql_find_charset_nr(unsigned int nr);
 
@@ -986,6 +987,8 @@ async_next_result_start_label:
                                MyRS->transfer_started=false;
                            }
                            MyRS->add_row(mysql_row);
+                           next_event(ASYNC_QUERY_GET_RESULT_CONT);
+                           async_exit_status=0;
                         }
                         if(async_exit_status) {
                            next_event(ASYNC_QUERY_GET_RESULT_CONT);
@@ -1012,6 +1015,9 @@ async_next_result_start_label:
                                MyRS->resultset_completed=false;
                                MyRS->transfer_started=false;
                            }
+                           MyRS->add_row(mysql_row);
+                           next_event(ASYNC_QUERY_GET_RESULT_CONT);
+                           async_exit_status=0;
                         }
                         if(async_exit_status) {
                            next_event(ASYNC_QUERY_GET_RESULT_CONT);

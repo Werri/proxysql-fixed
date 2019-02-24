@@ -1,4 +1,5 @@
-#define PKT_PARSED 0 define PKT_ERROR 1
+#define PKT_PARSED 0
+#define PKT_ERROR 1
 
 #ifdef max_allowed_packet
 #undef max_allowed_packet
