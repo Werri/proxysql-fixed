@@ -1050,7 +1050,7 @@ async_free_result_end_label:
                         if(async_exit_status) {
                            next_event(ASYNC_QUERY_GET_RESULT_CONT);
                         } else if(MyRS && fetched_rows>0) {
-                           next_event(ASYNC_QUERY_GET_RESULT_CONT);
+                           NEXT_IMMEDIATE(ASYNC_QUERY_GET_RESULT_CONT);
                         } else if (MyRS && MyRS->have_result) {
                            if(!MyRS->is_started) {
                                NEXT_IMMEDIATE(ASYNC_FREE_RESULT_START);
@@ -1097,7 +1097,7 @@ async_free_result_end_label:
                         if(async_exit_status) {
                            next_event(ASYNC_QUERY_GET_RESULT_CONT);
                         } else if (MyRS && fetched_rows>0) {
-                           next_event(ASYNC_QUERY_GET_RESULT_CONT);
+                           NEXT_IMMEDIATE(ASYNC_QUERY_GET_RESULT_CONT);
                         } else if (MyRS && MyRS->have_result) {
                            if(!MyRS->is_started) {
                                NEXT_IMMEDIATE(ASYNC_FREE_RESULT_START);
