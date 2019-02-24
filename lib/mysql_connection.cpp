@@ -6,7 +6,7 @@
 
 extern const MARIADB_CHARSET_INFO * proxysql_find_charset_nr(unsigned int nr);
 
-#define PROXYSQL_USE_RESULT
+//#define PROXYSQL_USE_RESULT
 //ifdef PROXYSQL_USE_RESULT
 //#undef PROXYSQL_USE_RESULT
 //#endif
