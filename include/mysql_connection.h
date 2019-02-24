@@ -188,5 +188,7 @@ class MySQL_Connection {
 	void reduce_auto_increment_delay_token() { if (auto_increment_delay_token) auto_increment_delay_token--; };
         int sync_counter;
         bool multi_statements_is_set;
+        bool multi_statements;
+        int fetched_rows;
 };
 #endif /* __CLASS_MYSQL_CONNECTION_H */

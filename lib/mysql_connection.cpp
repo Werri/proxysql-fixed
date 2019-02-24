@@ -232,6 +232,8 @@ MySQL_Connection::MySQL_Connection() {
 	local_stmts=new MySQL_STMTs_local_v14(false); // false by default, it is a backend
         sync_counter = 0;
         multi_statements=false;
+        multi_statements_is_set=false; //unused parameter
+        fetched_rows=0;
 };
 
 MySQL_Connection::~MySQL_Connection() {
