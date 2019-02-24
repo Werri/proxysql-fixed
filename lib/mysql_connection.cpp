@@ -924,7 +924,7 @@ handler_again:
 
                 case ASYNC_MULTI_STATEMENTS:
                      multi_statements=false;
-                     NEXT_IMMEDIATE(ASYNC_QUERY_END);
+                     NEXT_IMMEDIATE(ASYNC_NEXT_RESULT_START);
 #ifdef PROXYSQL_USE_RESULT
                      NEXT_IMMEDIATE(ASYNC_USE_RESULT_START);
 #else
@@ -933,10 +933,14 @@ handler_again:
                 break;
 
 		case ASYNC_NEXT_RESULT_START:
+                        if(!mysql_more_results(mysql)) {
+                           goto async_label;
+                        }
 			async_exit_status = mysql_next_result_start(&interr, mysql);
 			if (async_exit_status) {
 				next_event(ASYNC_NEXT_RESULT_CONT);
 			} else {
+async_label:
 #ifdef PROXYSQL_USE_RESULT
 				NEXT_IMMEDIATE(ASYNC_USE_RESULT_START);
 #else

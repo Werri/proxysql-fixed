@@ -3048,7 +3048,7 @@ handler_again:
 
 					switch (status) {
 						case PROCESSING_QUERY:
-							MySQL_Result_to_MySQL_wire(myconn->mysql, myconn->MyRS);
+							//MySQL_Result_to_MySQL_wire(myconn->mysql, myconn->MyRS);
 							break;
 						case PROCESSING_STMT_PREPARE:
 							{
@@ -3348,7 +3348,7 @@ handler_again:
 							switch (status) {
 								case PROCESSING_QUERY:
 									if (myconn) {
-										MySQL_Result_to_MySQL_wire(myconn->mysql, myconn->MyRS, myds);
+										//MySQL_Result_to_MySQL_wire(myconn->mysql, myconn->MyRS, myds);
 									} else {
 										MySQL_Result_to_MySQL_wire(NULL, NULL, myds);
 									}
@@ -3414,12 +3414,12 @@ handler_again:
 							// start sending to frontend if mysql_thread___threshold_resultset_size is reached
 							case 1:
 								if (myconn->MyRS && myconn->MyRS->result && myconn->MyRS->resultset_size > (unsigned int) mysql_thread___threshold_resultset_size) {
-									myconn->MyRS->get_resultset(client_myds->PSarrayOUT);
+									//myconn->MyRS->get_resultset(client_myds->PSarrayOUT);
 								}
 								break;
 							// rc==2 : a multi-resultset (or multi statement) was detected, and the current statement is completed
 							case 2:
-                                                                MySQL_Result_to_MySQL_wire(myconn->mysql,myconn->MyRS);
+                                                                //MySQL_Result_to_MySQL_wire(myconn->mysql,myconn->MyRS);
 								//MySQL_Result_to_MySQL_call_wire(myconn);
 								  /*if (myconn->MyRS) { // we also need to clear MyRS, so that the next staement will recreate it if needed
 										if (myconn->MyRS_reuse) {
@@ -3435,7 +3435,7 @@ handler_again:
 							// start sending to frontend if mysql_thread___threshold_resultset_size is reached
 							case 3:
 								if (myconn->MyRS && myconn->MyRS->result && myconn->MyRS->resultset_size > (unsigned int) mysql_thread___threshold_resultset_size) {
-									myconn->MyRS->get_resultset(client_myds->PSarrayOUT);
+									//myconn->MyRS->get_resultset(client_myds->PSarrayOUT);
 								}
 								break;
 							default:
