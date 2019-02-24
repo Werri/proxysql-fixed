@@ -920,7 +920,7 @@ handler_again:
 //			break;
 
                 case ASYNC_MULTI_STATEMENTS:
-                     multi_statements=true;
+                     multi_statements=false;
 #ifdef PROXYSQL_USE_RESULT
                      NEXT_IMMEDIATE(ASYNC_USE_RESULT_START);
 #else
