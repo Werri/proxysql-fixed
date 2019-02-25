@@ -924,7 +924,7 @@ handler_again:
 
                 case ASYNC_MULTI_STATEMENTS:
                      multi_statements=false;
-                     NEXT_IMMEDIATE(ASYNC_NEXT_RESULT_START);
+                     NEXT_IMMEDIATE(ASYNC_QUERY_END);
 #ifdef PROXYSQL_USE_RESULT
                      NEXT_IMMEDIATE(ASYNC_USE_RESULT_START);
 #else

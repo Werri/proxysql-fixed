@@ -3049,6 +3049,8 @@ handler_again:
 					switch (status) {
 						case PROCESSING_QUERY:
 							//MySQL_Result_to_MySQL_wire(myconn->mysql, myconn->MyRS);
+                                                        //MySQL_Result_to_MySQL_call_wire(myconn);
+                                                        OK_r(myconn);
 							break;
 						case PROCESSING_STMT_PREPARE:
 							{
@@ -3349,8 +3351,11 @@ handler_again:
 								case PROCESSING_QUERY:
 									if (myconn) {
 										//MySQL_Result_to_MySQL_wire(myconn->mysql, myconn->MyRS, myds);
+                                                                                //MySQL_Result_to_MySQL_call_wire(myconn);
+                                                                                OK_r(myconn);
 									} else {
-										MySQL_Result_to_MySQL_wire(NULL, NULL, myds);
+										//MySQL_Result_to_MySQL_wire(NULL, NULL, myds);
+                                                                                OK_r(NULL);
 									}
 									break;
 								case PROCESSING_STMT_PREPARE:
@@ -3413,14 +3418,18 @@ handler_again:
 							// rc==1 , query is still running
 							// start sending to frontend if mysql_thread___threshold_resultset_size is reached
 							case 1:
-								if (myconn->MyRS && myconn->MyRS->result && myconn->MyRS->resultset_size > (unsigned int) mysql_thread___threshold_resultset_size) {
-									//myconn->MyRS->get_resultset(client_myds->PSarrayOUT);
-								}
+								//if (myconn->MyRS && myconn->MyRS->result && myconn->MyRS->resultset_size > (unsigned int) mysql_thread___threshold_resultset_size) {
+								//	//myconn->MyRS->get_resultset(client_myds->PSarrayOUT);
+								//}
+                                                                OK_r(myconn);
 								break;
 							// rc==2 : a multi-resultset (or multi statement) was detected, and the current statement is completed
 							case 2:
                                                                 //MySQL_Result_to_MySQL_wire(myconn->mysql,myconn->MyRS);
-								//MySQL_Result_to_MySQL_call_wire(myconn);
+                                                                //while(true) {
+								//  MySQL_Result_to_MySQL_call_wire(myconn);
+                                                                //}
+                                                                OK_r(myconn);
 								  /*if (myconn->MyRS) { // we also need to clear MyRS, so that the next staement will recreate it if needed
 										if (myconn->MyRS_reuse) {
 											delete myconn->MyRS_reuse;
@@ -3434,9 +3443,10 @@ handler_again:
 							// rc==3 , a multi statement query is still running
 							// start sending to frontend if mysql_thread___threshold_resultset_size is reached
 							case 3:
-								if (myconn->MyRS && myconn->MyRS->result && myconn->MyRS->resultset_size > (unsigned int) mysql_thread___threshold_resultset_size) {
+								//if (myconn->MyRS && myconn->MyRS->result && myconn->MyRS->resultset_size > (unsigned int) mysql_thread___threshold_resultset_size) {
 									//myconn->MyRS->get_resultset(client_myds->PSarrayOUT);
-								}
+								//}
+                                                                OK_r(myconn);
 								break;
 							default:
 								break;
@@ -4745,35 +4755,39 @@ void MySQL_Session::MySQL_Stmt_Result_to_MySQL_wire(MYSQL_STMT *stmt, MySQL_Conn
 	}
 }
 
+
 void MySQL_Session::MySQL_Result_to_MySQL_call_wire(MySQL_Connection * myconn) {
-     MySQL_ResultSet * tmpRS = NULL;
-     MySQL_Connection * tmpConn = NULL;
-     MYSQL * tmpMysql = NULL;
-     MYSQL_RES * tmpMysqlRes = NULL;
-     MYSQL_RES * tmpMyRS_MysqlRes = NULL;
-     if(myconn) {
-        tmpConn=myconn;
-        if(tmpConn->MyRS) {
-           tmpRS=tmpConn->MyRS;
-           if(tmpRS->result) {
-              tmpMyRS_MysqlRes = tmpRS->result;
-           }
-        }
-        if(tmpConn->mysql) {
-           tmpMysql=tmpConn->mysql;
-        }
-        if(tmpConn->mysql_result) {
-           tmpMysqlRes = tmpConn->mysql_result;
-        }
+    if(myconn) {
+       MySQL_Result_to_MySQL_wire(myconn->mysql,NULL,NULL);
+    }
+}
+
+void MySQL_Session::OK_r(MySQL_Connection * myconn,bool send_ms,bool send_rows,bool send_trans,bool is_ok) {
+     MYSQL * mysql = NULL;
+     if(!myconn) {
+             client_myds->myprot.generate_pkt_ERR(true,NULL,NULL,client_myds->pkt_sid+1, 2013, (char *)"HY000" ,(char *)"KLO Lost connection to MySQL server during query");
+             return;
+     } else {
+             mysql=myconn->mysql;
+             if(!mysql) {
+                client_myds->myprot.generate_pkt_ERR(true,NULL,NULL,client_myds->pkt_sid+1, 2013, (char *)"HY000" ,(char *)"KLOPAPIER Lost connection to MySQL server during query");
+                return;
+             }
      }
-     if(tmpConn) {
-        if(tmpRS) {
-           MySQL_Result_to_MySQL_wire(tmpMysql, tmpRS, NULL);
-           mybe->server_myds->PSarrayOUT->copy_add(client_myds->PSarrayOUT, 0, client_myds->PSarrayOUT->len);
-           while (client_myds->PSarrayOUT->len) client_myds->PSarrayOUT->remove_index(client_myds->PSarrayOUT->len-1,NULL);
-        } else {
-           MySQL_Result_to_MySQL_wire(tmpMysql, NULL, NULL);
-        }
+     unsigned int num_rows = send_rows ? mysql_affected_rows(mysql) : 0;
+     unsigned int nTrx=send_trans ? NumActiveTransactions() : 0;
+     uint16_t setStatus = (nTrx ? SERVER_STATUS_IN_TRANS : 0 );
+     if (autocommit) setStatus += SERVER_STATUS_AUTOCOMMIT;
+     if (mysql->server_status & SERVER_MORE_RESULTS_EXIST && send_ms)
+         setStatus += SERVER_MORE_RESULTS_EXIST;
+     setStatus |= ( mysql->server_status & ~SERVER_STATUS_AUTOCOMMIT ); // get flags from server_status but ignore autocommit
+     setStatus = setStatus & ~SERVER_STATUS_CURSOR_EXISTS; // Do not send cursor #1128
+     if(is_ok) {
+        client_myds->myprot.generate_pkt_OK(true,NULL,NULL,client_myds->pkt_sid+1,num_rows,mysql->insert_id, setStatus, mysql->warning_count,mysql->info);
+        client_myds->pkt_sid++;
+     } else {
+        client_myds->myprot.generate_pkt_ERR(true,NULL,NULL,client_myds->pkt_sid+1, 2013, (char *)"HY000" ,(char *)"OMG Lost connection to MySQL server during query");
+        return;
      }
 }
 

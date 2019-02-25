@@ -214,6 +214,7 @@ class MySQL_Session
 	void SQLite3_to_MySQL(SQLite3_result *, char *, int , MySQL_Protocol *);
 	void MySQL_Result_to_MySQL_wire(MYSQL *mysql, MySQL_ResultSet *MyRS, MySQL_Data_Stream *_myds=NULL);
         void MySQL_Result_to_MySQL_call_wire(MySQL_Connection * myconn);
+        void OK_r(MySQL_Connection * myconn,bool send_ms=false,bool send_rows=false,bool send_trans=false,bool is_ok=true);
 	void MySQL_Stmt_Result_to_MySQL_wire(MYSQL_STMT *stmt, MySQL_Connection *myconn);
 	unsigned int NumActiveTransactions();
 	bool HasOfflineBackends();
